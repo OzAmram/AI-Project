@@ -78,17 +78,19 @@ class Parser(object):
 
 
     def parseOpponentMoves(self):
-        words = stdin.readline().strip().split(" ")
+        words = stdin.readline().split(" ")
         while len(words) != 0:
             playerName = words[0]
             action = words[1]
             if action == "place_armies":
-                move = stdin.readline().strip().split(" ")
+                move = stdin.readline().split(" ")
+                print(move)
                 noRegion = move[0]
                 armies = move[1]
                 self.bot.opponentPlacement(noRegion, armies)
             if action == "attack/transfer":
-                move = stdin.readline().strip().split(" ")
+                print(move)
+                move = stdin.readline().split(" ")
                 noRegion = move[0]
                 toRegion = move[1]
                 armies = move[2]
