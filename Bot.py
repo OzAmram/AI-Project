@@ -15,18 +15,23 @@ class Bot(object):
         self.maxRounds = 0
         self.parser = Parser(self)
         self.phase = None
+        self.startingRegionsReceived = []
+        self.regions = []
+        self.superRegions = []
+        self.ownedRegions = []
 
     def playGame(self):
         self.parser.parseInput()
 
     def pickStartingRegion(self):
         #Start here!
-        stdout.write(self.startingRegionsreceived)
+
+        stdout.write(self.startingRegionsReceived)
         stdout.flush()
 
     def placeArmies(self):
         #start here!
-        self.region = random.randint(len(ownedRegions))
+        self.region = random.randint(len(self.ownedRegions))
         move = "%s place_armies %d %d" % (self.botName, self.ownedRegions[region], self.armiesLeft)
         stdout.write(move)
         stdout.flush()
@@ -94,10 +99,10 @@ class Bot(object):
         self.maxRounds = newMaxRounds
 
     def clearStartingRegions(self):
-        self.startingRegionsreceived.clear()
+        self.startingRegionsReceived = []
 
     def addStartingRegion(self, noRegion):
-        self.startingRegionsreceived.append(noRegion)
+        self.startingRegionsReceived.append(noRegion)
 
     def addOpponentStartingRegion(self, noRegion):
         self.opponentStartingRegions.append(noRegion)
@@ -164,7 +169,7 @@ class Bot(object):
                     round(nbArmies * 0.6))
 
     def resetRegionsOwned(self):
-        self.ownedRegions.clear()
+        self.ownedRegions = []
 
 
 if __name__ == '__main__':
