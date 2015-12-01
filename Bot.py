@@ -1,12 +1,19 @@
 import random
+from sys import stdin, stdout
+from Parser import Parser
+from Region import Region
+from SuperRegion import SuperRegion
 
 class Bot(object):
+    PICK_STARTING_REGION = 1
+    PLACE_ARMIES = 2
+    ATTACK_TRANSFER = 3
     def __init__(self):
         self.armiesLeft = 0
         self.timebank = 0
         self.timePerMove = 0
         self.maxRounds = 0
-        self.parser
+        self.parser = Parser(self)
         self.phase = None
 
     def playGame(self):
@@ -14,13 +21,16 @@ class Bot(object):
 
     def pickStartingRegion(self):
         #Start here!
-        std::cout << startingRegionsreceived.front() << std::endl
+        stdout.write(self.startingRegionsreceived)
+        stdout.flush()
 
     def placeArmies(self):
         #start here!
         self.region = random.randint(len(ownedRegions))
-        std::cout << botName << " place_armies " << ownedRegions[region] << " " << armiesLeft << std::endl
-        addArmies(self.ownedRegions[region], self.armiesLeft)
+        move = "%s place_armies %d %d" % (self.botName, self.ownedRegions[region], self.armiesLeft)
+        stdout.write(move)
+        stdout.flush()
+        self.addArmies(self.ownedRegions[region], self.armiesLeft)
 
     def makeMoves(self):
         """
@@ -44,7 +54,8 @@ class Bot(object):
             move += "%s attack/transfer %d %s %d," % (self.botName, i, 
                 target, self.regions[i].getArmies() - 1)
         if move != "": move = move[:-1] #strip last comma
-        std::cout << move << std::endl
+        stdout.write(move)
+        stdout.flush()
 
     def addRegion(self, noRegion, noSuperRegion):
         while(len(self.regions) <= noRegion):
@@ -154,3 +165,7 @@ class Bot(object):
 
     def resetRegionsOwned(self):
         self.ownedRegions.clear()
+
+
+if __name__ == '__main__':
+    Bot().playGame()
