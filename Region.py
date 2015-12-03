@@ -14,3 +14,6 @@ class Region(object):
 
     def getNeighbor(self, index):
         return self.neighbors[index]
+
+    def getArmies(self):
+        return self.armies
