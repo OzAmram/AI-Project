@@ -6,8 +6,8 @@ class Parser(object):
         self.bot = bot
 
     def parseInput(self):
-<<<<<<< HEAD
         inputType = stdin.readline().strip().split(" ")
+        if(self.DEBUG): print inputType
         while(len(inputType) != 0):
             if inputType[0] == "setup_map":
                 self.parseSetupMap(inputType[1:])
@@ -21,23 +21,6 @@ class Parser(object):
                 self.parsePickStartingRegion(inputType[1:])
             elif inputType[0] == "go":
                 self.parseGo(inputType[1:])
-=======
-        inputType = stdin.readline().strip()
-        if(self.DEBUG): print inputType
-        while(inputType != ""):
-            if inputType == "setup_map":
-                self.parseSetupMap()
-            elif inputType == "settings":
-                self.parseSettings()
-            elif inputType == "update_map":
-                self.parseUpdateMap()
-            elif inputType == "opponent_moves":
-                self.parseOpponentMoves()
-            elif inputType == "pick_starting_region":
-                self.parsePickStartingRegion()
-            elif inputType == "go":
-                self.parseGo()
->>>>>>> origin/master
             else:
                 #getline(std::cin, line)
                 #std::cerr << inputType << " " << line << std::endl

@@ -5,7 +5,7 @@ from Region import Region
 from SuperRegion import SuperRegion
 
 
-DEBUG = True
+DEBUG = False
 
 class Bot(object):
     PICK_STARTING_REGION = 1
