@@ -91,7 +91,25 @@ class Bot(object):
             perm_moves.extend(additional_perms)
 
         return perm_moves
-            
+
+    def genState(self, moveStr):
+        #convert from move string to a state to be evaluated
+        pieces = moveStr.split(" ")
+        bot = pieces[0]
+        start = pieces[2]
+        end = pieces[3]
+        armies = pieces[4]
+        if start.owner == end.owner: #transfer, no effect?
+            return 0
+        #otherwise it's an attack
+        defendersDestroyed = amries * .6 #assuming deterministic
+        attackersDestroyed = end.armies * .7 #again assuming deterministic
+        regionBonus = 100 if defendersDestroyed >= end.armies else 0
+        val = defendersDestroyed - attackersDestroyed + regionBonus
+        return val if bot == self.botName else -val
+
+    def estState(self, state):
+        return state #actual estimating done in genState
 
 
     def makeMoves(self):
@@ -233,8 +251,6 @@ class Bot(object):
             output += move
 
         return output
-
-
 
 if __name__ == '__main__':
     Bot().playGame()
