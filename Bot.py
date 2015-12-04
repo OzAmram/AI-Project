@@ -4,6 +4,9 @@ from Parser import Parser
 from Region import Region
 from SuperRegion import SuperRegion
 
+
+DEBUG = True
+
 class Bot(object):
     PICK_STARTING_REGION = 1
     PLACE_ARMIES = 2
@@ -13,7 +16,7 @@ class Bot(object):
         self.timebank = 0
         self.timePerMove = 0
         self.maxRounds = 0
-        self.parser = Parser(self)
+        self.parser = Parser(self, DEBUG)
         self.phase = None
         self.startingRegionsReceived = []
         self.regions = []
@@ -58,7 +61,7 @@ class Bot(object):
     def placeArmies(self):
         #start here!
         possible_placements = self.genArmyPlacements(self.armiesLeft, 0)
-        #use heuristic to pick best move immediately
+        #use heuristic to pick best placement immediately
         values = [self.evalPlacementState(possible_placements[i]) for i in xrange(len(possible_placements))]
         max_val = max(values)
         best_placement = possible_placements[values.index(max_val)]
@@ -72,8 +75,9 @@ class Bot(object):
         for placement in placements:
             pieces = placements.split(" ")
             bot = pieces[0]
-            region = pieces[2]
+            region_idx = pieces[2]
             armies = pieces[3]
+            region = self.regions[region_idx]
             for i in len(region.getNbNeighbors()):
                 neighbor = region.getNeighbor(i)
                 if neighbor.owner == "Neutral":
@@ -119,9 +123,11 @@ class Bot(object):
             #convert from move string to a state to be evaluated
             pieces = move.split(" ")
             bot = pieces[0]
-            start = pieces[2]
-            end = pieces[3]
+            start_idx = pieces[2]
+            end_idx = pieces[3]
             armies = pieces[4]
+            start = self.regions[start_idx]
+            end = self.regions[end_idx]
             if start.owner == end.owner: return 0 #transfer, no effect?
             #otherwise it's an attack
             defendersDestroyed = amries * .6 #assuming deterministic
