@@ -59,12 +59,28 @@ class Bot(object):
         #start here!
         possible_placements = self.genArmyPlacements(self.armiesLeft, 0)
         #use heuristic to pick best move immediately
-        values = [self.estState(self.genState(possible_placements[i])) for i in xrange(len(possible_placements))]
+        values = [self.evalPlacementState(possible_placements[i]) for i in xrange(len(possible_placements))]
         max_val = max(values)
         best_placement = possible_placements[values.index(max_val)]
         stdout.write(self.formatMove(best_placement))
         stdout.flush()
 
+    def evalPlacementState(self, placements):
+        val = 0
+        neutralBonus = 50
+        opponentBonus = 25
+        for placement in placements:
+            pieces = placements.split(" ")
+            bot = pieces[0]
+            region = pieces[2]
+            armies = pieces[3]
+            for i in len(region.getNbNeighbors()):
+                neighbor = region.getNeighbor(i)
+                if neighbor.owner == "Neutral":
+                    val += neutralBonus
+                elif neighbor.owner != region.owner:
+                    val += opponentBonus
+        return val
 
     def genMoves(self):
         #generate all the possible moves
@@ -97,19 +113,21 @@ class Bot(object):
 
         return perm_moves
 
-    def genState(self, moveStr):
-        #convert from move string to a state to be evaluated
-        pieces = moveStr.split(" ")
-        bot = pieces[0]
-        start = pieces[2]
-        end = pieces[3]
-        armies = pieces[4]
-        if start.owner == end.owner: return 0 #transfer, no effect?
-        #otherwise it's an attack
-        defendersDestroyed = amries * .6 #assuming deterministic
-        attackersDestroyed = end.armies * .7 #again assuming deterministic
-        regionBonus = 10 + 100*self.gotSuperRegion(end, start.owner) if defendersDestroyed >= end.armies else 0 
-        val = defendersDestroyed - attackersDestroyed + regionBonus
+    def evalMoveState(self, moveStr):
+        val = 0
+        for move in moveStr:
+            #convert from move string to a state to be evaluated
+            pieces = move.split(" ")
+            bot = pieces[0]
+            start = pieces[2]
+            end = pieces[3]
+            armies = pieces[4]
+            if start.owner == end.owner: return 0 #transfer, no effect?
+            #otherwise it's an attack
+            defendersDestroyed = amries * .6 #assuming deterministic
+            attackersDestroyed = end.armies * .7 #again assuming deterministic
+            regionBonus = 10 + 100*self.gotSuperRegion(end, start.owner) if defendersDestroyed >= end.armies else 0 
+            val += defendersDestroyed - attackersDestroyed + regionBonus
         return val if bot == self.botName else -val
 
     def gotSuperRegion(self, attackedRegion, owner):
@@ -118,9 +136,6 @@ class Bot(object):
             if region.owner != owner and attackedRegion != region:
                 return 0 #not taken over
         return superRegion.reward
-
-    def estState(self, state):
-        return state #actual estimating done in genState
 
     def makeMoves(self):
         """
@@ -132,7 +147,7 @@ class Bot(object):
     /// When outputting multiple moves they must be seperated by a comma
         """
         all_moves = self.genMoves()
-        values = [self.estState(self.genState(all_moves[i])) for i in xrange(len(all_moves))]
+        values = [self.evalMoveState(all_moves[i])) for i in xrange(len(all_moves))]
         max_val = max(values)
         best_move = all_moves[values.index(max_val)]
         stdout.write(self.formatMove(best_move))
