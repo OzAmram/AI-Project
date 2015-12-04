@@ -68,26 +68,31 @@ class Bot(object):
 
     def genMoves(self):
         #generate all the possible moves
-        moves = []
+        moves_per_region = [] #a list of lists of possible moves each region could make
+        #each region can only make 1 move
         for j in range(len(self.ownedRegions)):
             region = self.regions[self.ownedRegions[j]]
-
+            moves = []
             if region.getArmies() <= 1: #cant do anything with those armies
                 continue
             for k in range(len(region.getNbNeighbors())):
                 target = self.regions(region.getNeighbor(k))
                 if (self.regions[target].getOwner() != "Me" and 
                     region.getArmies() <= target.getArmies()): pass
-                move.append("%s attack/transfer %d %s %d," 
+                moves.append("%s attack/transfer %d %s %d," 
                             % (self.botName, region.id, target.id, region.getArmies() - 1))
                             #for now only attack/transfer with all armies
+            moves_per_region.append(moves)
+
 
         #generate all the possible permuations of moves
+        #each permuataion can only have 1 move for each region
         perm_moves = [[]]
-        for move in moves:
+        for region_moves in moves_per_region:
             additional_perms = []
-            for move_list in perm_moves:
-                additional_perms.append(move_list.append(move))
+            for move in region_moves:
+                for move_list in perm_moves:
+                    additional_perms.append(move_list.append(move))
             perm_moves.extend(additional_perms)
 
         return perm_moves
