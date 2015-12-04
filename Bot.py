@@ -99,18 +99,23 @@ class Bot(object):
         start = pieces[2]
         end = pieces[3]
         armies = pieces[4]
-        if start.owner == end.owner: #transfer, no effect?
-            return 0
+        if start.owner == end.owner: return 0 #transfer, no effect?
         #otherwise it's an attack
         defendersDestroyed = amries * .6 #assuming deterministic
         attackersDestroyed = end.armies * .7 #again assuming deterministic
-        regionBonus = 100 if defendersDestroyed >= end.armies else 0
+        regionBonus = 10 + 100*self.gotSuperRegion(end, start.owner) if defendersDestroyed >= end.armies else 0 
         val = defendersDestroyed - attackersDestroyed + regionBonus
         return val if bot == self.botName else -val
 
+    def gotSuperRegion(self, attackedRegion, owner):
+        superRegion = attackedRegion.superRegion
+        for region in superRegion.regions:
+            if region.owner != owner and attackedRegion != region:
+                return 0 #not taken over
+        return superRegion.reward
+
     def estState(self, state):
         return state #actual estimating done in genState
-
 
     def makeMoves(self):
         """
