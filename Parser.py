@@ -1,11 +1,13 @@
 from sys import stdin, stdout
 
 class Parser(object):
-    def __init__(self, bot):
+    def __init__(self, bot, DEBUG=False):
+        self.DEBUG = DEBUG
         self.bot = bot
 
     def parseInput(self):
         inputType = stdin.readline().strip()
+        if(self.DEBUG): print inputType
         while(inputType != ""):
             if inputType == "setup_map":
                 self.parseSetupMap()

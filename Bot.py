@@ -4,6 +4,9 @@ from Parser import Parser
 from Region import Region
 from SuperRegion import SuperRegion
 
+
+DEBUG = True
+
 class Bot(object):
     PICK_STARTING_REGION = 1
     PLACE_ARMIES = 2
@@ -13,7 +16,7 @@ class Bot(object):
         self.timebank = 0
         self.timePerMove = 0
         self.maxRounds = 0
-        self.parser = Parser(self)
+        self.parser = Parser(self, DEBUG)
         self.phase = None
         self.startingRegionsReceived = []
         self.regions = []
