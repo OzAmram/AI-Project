@@ -65,6 +65,10 @@ class Parser(object):
             while(noRegion != ""):
                 self.bot.addStartingRegion(noRegion)
                 noRegion = stdin.readline().strip()
+        elif settyingType == "starting_pick_amount":
+            #added by Oz
+            amount = stdin.readline().strip()
+            self.setStartingPickAmount(amount)
 
     def parseUpdateMap(self):
         self.bot.resetRegionsOwned()

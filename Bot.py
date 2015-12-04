@@ -27,15 +27,72 @@ class Bot(object):
         #Start here!
 
         stdout.write(self.startingRegionsReceived)
+        #pick a random region
+        rand_idx = random.randint(len(self.startingRegionsreceived))
+        stdout.write(self.startingRegionsreceived[rand_idx])
         stdout.flush()
+
+    def genArmyPlacements(self, armiesToPlace, min_region_idx):
+        #generate a list of all possible army placements (a list of lists of move strings), 
+        #that only include regions with indexs >= min_region_idx
+        # (min_region_idx =0 means include all owned regions)
+        
+        if(min_region_idx == len(self.ownedRegions)): return [[]] #base case
+
+        #generate all possible placements on regions after this one recursively
+        #Then append all possible placements that include a placement onto this region onto those
+        placements = self.genArmyPlacements(armiesToPlace, min_region_idx + 1)
+        region_idx = self.ownedRegions[min_region_idx]
+        for n in range(1,armiesToPlace):
+            placement = "%s place_armies %d %d" % (self.botName, region_idx, n)
+            placements_after = self.genArmyPlacements(armiesToPlace - n, min_region_idx +1)
+            for place_seq in placements_after:
+                place_seq.append(placement)
+            placements.extend(placements_after)
+        #include placement of placing all armies on one territory
+        p = "%s place_armies %d %d" % (self.botName, region_idx, armiesToPlace)
+        placements.append([p]) 
+        return placements
+
 
     def placeArmies(self):
         #start here!
-        self.region = random.randint(len(self.ownedRegions))
-        move = "%s place_armies %d %d" % (self.botName, self.ownedRegions[region], self.armiesLeft)
-        stdout.write(move)
+        possible_placements = self.genArmyPlacements(self.armiesLeft, 0)
+        #use heuristic to pick best move immediately
+        values = [self.estState(self.genState(possible_placements[i])) for i in xrange(len(possible_placements))]
+        max_val = max(values)
+        best_placement = possible_placements[values.index(max_val)]
+        stdout.write(self.formatMove(best_placement))
         stdout.flush()
-        self.addArmies(self.ownedRegions[region], self.armiesLeft)
+
+
+    def genMoves(self):
+        #generate all the possible moves
+        moves = []
+        for j in range(len(self.ownedRegions)):
+            region = self.regions[self.ownedRegions[j]]
+
+            if region.getArmies() <= 1: #cant do anything with those armies
+                continue
+            for k in range(len(region.getNbNeighbors())):
+                target = self.regions(region.getNeighbor(k))
+                if (self.regions[target].getOwner() != "Me" and 
+                    region.getArmies() <= target.getArmies()): pass
+                move.append("%s attack/transfer %d %s %d," 
+                            % (self.botName, region.id, target.id, region.getArmies() - 1))
+                            #for now only attack/transfer with all armies
+
+        #generate all the possible permuations of moves
+        perm_moves = [[]]
+        for move in moves:
+            additional_perms = []
+            for move_list in perm_moves:
+                additional_perms.append(move_list.append(move))
+            perm_moves.extend(additional_perms)
+
+        return perm_moves
+            
+
 
     def makeMoves(self):
         """
@@ -46,20 +103,11 @@ class Bot(object):
     //  std::cout << botName << " attack/transfer " << from << " " << to << " "<< armiesMoved;
     /// When outputting multiple moves they must be seperated by a comma
         """
-        move = ""
-        for j in range(len(self.ownedRegions)):
-            i = self.ownedRegions[j]
-            if self.regions[i].getArmies() <= 1:
-                continue
-            target = self.regions[i].getNeighbor(self.regions[i].getNbNeighbors())
-            for k in range(5):
-                if self.regions[target].getOwner() != "Me":
-                    break
-                target = self.regions[i].getNeighbor(self.regions[i].getNbNeighbors())
-            move += "%s attack/transfer %d %s %d," % (self.botName, i, 
-                target, self.regions[i].getArmies() - 1)
-        if move != "": move = move[:-1] #strip last comma
-        stdout.write(move)
+        all_moves = self.genMoves()
+        values = [self.estState(self.genState(all_moves[i])) for i in xrange(len(all_moves))]
+        max_val = max(values)
+        best_move = all_moves[values.index(max_val)]
+        stdout.write(self.formatMove(best_move))
         stdout.flush()
 
     def addRegion(self, noRegion, noSuperRegion):
@@ -148,6 +196,7 @@ class Bot(object):
     def addArmies(self, noRegion, nbArmies):
         self.regions[noRegion].setArmies(self.regions[noRegion].getArmies() + nbArmies)
 
+
     def moveArmies(self, noRegion, toRegion, nbArmies):
         if (self.regions[noRegion].getOwner() == self.regions[toRegion].getOwner() and
             self.regions[noRegion].getArmies() > nbArmies):
@@ -170,6 +219,21 @@ class Bot(object):
 
     def resetRegionsOwned(self):
         self.ownedRegions = []
+
+    def setStartingPickAmount(self, amount):
+        self.startingPickAmount = amount
+
+    def formatMove(self, moves):
+        #if we don't wont to make a move, return no moves not empty string
+        if (len(moves) == 0): return "No moves"
+
+        output = ""
+        for move in moves:
+            if (output != ""): output += ", "
+            output += move
+
+        return output
+
 
 
 if __name__ == '__main__':
