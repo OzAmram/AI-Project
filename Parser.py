@@ -7,8 +7,8 @@ class Parser(object):
 
     def parseInput(self):
         inputType = stdin.readline().strip().split(" ")
-        if(self.DEBUG): print inputType
         while(len(inputType) != 0):
+            if(self.DEBUG): print inputType
             if inputType[0] == "setup_map":
                 self.parseSetupMap(inputType[1:])
             elif inputType[0] == "settings":
@@ -45,13 +45,13 @@ class Parser(object):
     def parseSettings(self, inputStr):
         settingType = inputStr[0]
         if settingType == "timebank":
-            timebank = inputStr[1]
+            timebank = int(inputStr[1])
             self.bot.setTimebank(timebank)
         elif settingType == "time_per_move":
-            timePerMove = inputStr[1]
+            timePerMove = int(inputStr[1])
             self.bot.setTimePerMove(timePerMove)
         elif settingType == "max_rounds":
-            maxRounds = inputStr[1]
+            maxRounds = int(inputStr[1])
             self.bot.setMaxRounds(maxRounds)
         elif settingType == "your_bot":
             bot_name = inputStr[1]
@@ -60,23 +60,23 @@ class Parser(object):
             bot_name = inputStr[1]
             self.bot.setOpponentBotName(bot_name)
         elif settingType == "starting_armies":
-            armies = inputStr[1]
+            armies = int(inputStr[1])
             self.bot.setArmiesLeft(armies)
         elif settingType == "starting_regions":
             noRegions = inputStr[1:]
             for noRegion in noRegions:
                 self.bot.addStartingRegion(noRegion)
-        elif settyingType == "starting_pick_amount":
+        elif settingType == "starting_pick_amount":
             #added by Oz
-            amount = inputStr[1]
-            self.setStartingPickAmount(amount)
+            amount = int(inputStr[1])
+            self.parseStartingPickAmount(amount)
 
     def parseUpdateMap(self, inputStr):
         self.bot.resetRegionsOwned()
         for i in range(0, len(inputStr), 3):
-            noRegion = inputStr[i]
+            noRegion = int(inputStr[i])
             playerName = inputStr[i+1]
-            armies = inputStr[i+2]
+            armies = int(inputStr[i+2])
             self.bot.updateRegion(noRegion, playerName, armies)
 
     def parseOpponentMoves(self, inputStr):
@@ -87,21 +87,21 @@ class Parser(object):
             action = words[i+1]
             i += 2
             if action == "place_armies":
-                noRegion = words[i]
-                armies = words[i+1]
+                noRegion = int(words[i])
+                armies = int(words[i+1])
                 i += 2
                 self.bot.opponentPlacement(noRegion, armies)
             if action == "attack/transfer":
-                noRegion = words[i]
-                toRegion = words[i+1]
-                armies = words[i+2]
+                noRegion = int(words[i])
+                toRegion = int(words[i+1])
+                armies = int(words[i+2])
                 i += 3
                 self.bot.opponentMovement(noRegion, toRegion, armies)
 
     def parseGo(self, inputStr):
         words = inputStr
         phase = words[0]
-        delay = words[1]
+        delay = int(words[1])
         self.bot.startDelay(delay)
         if phase == "place_armies":
             self.bot.setPhase(self.bot.PLACE_ARMIES)
@@ -114,35 +114,35 @@ class Parser(object):
     def parseSuperRegions(self, inputStr):
         words = inputStr
         for i in range(0, len(words), 2):
-            superReg = words[i]
-            reward = words[i+1]
+            superReg = int(words[i])
+            reward = int(words[i+1])
             self.bot.addSuperRegion(superReg, reward)
 
     def parseRegions(self, inputStr):
         words = inputStr
         for i in range(0, len(words), 2):
-            reg = words[i]
-            reward = words[i+1]
+            reg = int(words[i])
+            reward = int(words[i+1])
             self.bot.addRegion(reg, reward)
 
     def parsePickStartingRegion(self, inputStr):
-        delay = inputStr[0]
+        delay = int(inputStr[0])
         self.bot.startDelay(delay)
         self.bot.clearStartingRegions()
         regions = inputStr[1:]
         for region in regions:
-            self.bot.addStartingRegion(region)
+            self.bot.addStartingRegion(int(region))
         self.bot.setPhase(self.bot.PICK_STARTING_REGION)
 
     def parseOpponentStartingRegions(self, inputStr):
         noRegions = inputStr
         for noRegion in noRegions:
-            self.bot.addOpponentStartingRegion(noRegion)
+            self.bot.addOpponentStartingRegion(int(noRegion))
 
     def parseNeighbors(self, inputStr):
         words = inputStr
         for i in range(0, len(words), 2):
-            region = words[i]
+            region = int(words[i])
             neighbors = words[i+1]
             neighbors_flds = neighbors.split(",")
             for i in neighbors_flds:
@@ -154,4 +154,7 @@ class Parser(object):
     def parseWastelands(self, inputStr):
         regions = inputStr
         for region in regions:
-            self.bot.addWasteland(region)
+            self.bot.addWasteland(int(region))
+
+    def parseStartingPickAmount(self, amount):
+        self.bot.startingPickAmount = amount
