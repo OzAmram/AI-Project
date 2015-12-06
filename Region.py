@@ -17,3 +17,12 @@ class Region(object):
 
     def getArmies(self):
         return self.armies
+
+    def getOwner(self):
+        return self.owner
+
+    def setArmies(self, armies):
+        self.armies = armies
+
+    def setOwner(self, owner):
+        self.owner = owner

@@ -6,106 +6,102 @@ class Parser(object):
         self.bot = bot
 
     def parseInput(self):
-        inputType = stdin.readline().strip()
-        if(self.DEBUG): print inputType
-        while(inputType != ""):
-            if inputType == "setup_map":
-                self.parseSetupMap()
-            elif inputType == "settings":
-                self.parseSettings()
-            elif inputType == "update_map":
-                self.parseUpdateMap()
-            elif inputType == "opponent_moves":
-                self.parseOpponentMoves()
-            elif inputType == "pick_starting_region":
-                self.parsePickStartingRegion()
-            elif inputType == "go":
-                self.parseGo()
+        inputType = stdin.readline().strip().split(" ")
+        while(len(inputType) != 0):
+            if(self.DEBUG): print inputType
+            if inputType[0] == "setup_map":
+                self.parseSetupMap(inputType[1:])
+            elif inputType[0] == "settings":
+                self.parseSettings(inputType[1:])
+            elif inputType[0] == "update_map":
+                self.parseUpdateMap(inputType[1:])
+            elif inputType[0] == "opponent_moves":
+                self.parseOpponentMoves(inputType[1:])
+            elif inputType[0] == "pick_starting_region":
+                self.parsePickStartingRegion(inputType[1:])
+            elif inputType[0] == "go":
+                self.parseGo(inputType[1:])
             else:
                 #getline(std::cin, line)
                 #std::cerr << inputType << " " << line << std::endl
                 pass
 
             self.bot.executeAction()
-            inputType = stdin.readline().strip()
+            inputType = stdin.readline().strip().split(" ")
 
-    def parseSetupMap(self):
-        setupType = stdin.readline().strip()
+    def parseSetupMap(self, inputStr):
+        setupType = inputStr[0]
         if setupType == "super_regions":
-            self.parseSuperRegions()
+            self.parseSuperRegions(inputStr[1:])
         elif setupType == "regions":
-            self.parseRegions()
+            self.parseRegions(inputStr[1:])
         elif setupType == "neighbors":
-            self.parseNeighbors()
+            self.parseNeighbors(inputStr[1:])
         elif setupType == "wastelands":
-            self.parseWastelands()
+            self.parseWastelands(inputStr[1:])
         elif setupType == "opponent_starting_regions":
-            self.parseOpponentStartingRegions()
+            self.parseOpponentStartingRegions(inputStr[1:])
 
-    def parseSettings(self):
-        settingType = stdin.readline().strip()
+    def parseSettings(self, inputStr):
+        settingType = inputStr[0]
         if settingType == "timebank":
-            timebank = stdin.readline().strip()
+            timebank = int(inputStr[1])
             self.bot.setTimebank(timebank)
         elif settingType == "time_per_move":
-            timePerMove = stdin.readline().strip()
+            timePerMove = int(inputStr[1])
             self.bot.setTimePerMove(timePerMove)
         elif settingType == "max_rounds":
-            maxRounds = stdin.readline().strip()
+            maxRounds = int(inputStr[1])
             self.bot.setMaxRounds(maxRounds)
         elif settingType == "your_bot":
-            bot_name = stdin.readline().strip()
+            bot_name = inputStr[1]
             self.bot.setBotName(bot_name)
         elif settingType == "opponent_bot":
-            bot_name = stdin.readline().strip()
+            bot_name = inputStr[1]
             self.bot.setOpponentBotName(bot_name)
         elif settingType == "starting_armies":
-            armies = stdin.readline().strip()
+            armies = int(inputStr[1])
             self.bot.setArmiesLeft(armies)
         elif settingType == "starting_regions":
-            noRegion = stdin.readline().strip()
-            while(noRegion != ""):
+            noRegions = inputStr[1:]
+            for noRegion in noRegions:
                 self.bot.addStartingRegion(noRegion)
-                noRegion = stdin.readline().strip()
-        elif settyingType == "starting_pick_amount":
+        elif settingType == "starting_pick_amount":
             #added by Oz
-            amount = stdin.readline().strip()
-            self.setStartingPickAmount(amount)
+            amount = int(inputStr[1])
+            self.parseStartingPickAmount(amount)
 
-    def parseUpdateMap(self):
+    def parseUpdateMap(self, inputStr):
         self.bot.resetRegionsOwned()
-        words = stdin.readline().strip().split(" ")
-        while len(words) != 0:
-            noRegion = words[0]
-            playerName = words[1]
-            armies = words[2]
+        for i in range(0, len(inputStr), 3):
+            noRegion = int(inputStr[i])
+            playerName = inputStr[i+1]
+            armies = int(inputStr[i+2])
             self.bot.updateRegion(noRegion, playerName, armies)
-            words = stdin.readline().strip().split(" ")
 
-
-    def parseOpponentMoves(self):
-        words = stdin.readline().split(" ")
-        while len(words) != 0:
-            playerName = words[0]
-            action = words[1]
+    def parseOpponentMoves(self, inputStr):
+        words = inputStr
+        i = 0
+        while i < len(words):
+            playerName = words[i]
+            action = words[i+1]
+            i += 2
             if action == "place_armies":
-                move = stdin.readline().split(" ")
-                print(move)
-                noRegion = move[0]
-                armies = move[1]
+                noRegion = int(words[i])
+                armies = int(words[i+1])
+                i += 2
                 self.bot.opponentPlacement(noRegion, armies)
             if action == "attack/transfer":
-                print(move)
-                move = stdin.readline().split(" ")
-                noRegion = move[0]
-                toRegion = move[1]
-                armies = move[2]
+                noRegion = int(words[i])
+                toRegion = int(words[i+1])
+                armies = int(words[i+2])
+                i += 3
                 self.bot.opponentMovement(noRegion, toRegion, armies)
 
-    def parseGo(self):
-        words = stdin.readline().strip().split(" ")
+    def parseGo(self, inputStr):
+        words = inputStr
         phase = words[0]
-        delay = words[1]
+        delay = int(words[1])
         self.bot.startDelay(delay)
         if phase == "place_armies":
             self.bot.setPhase(self.bot.PLACE_ARMIES)
@@ -115,53 +111,50 @@ class Parser(object):
             return
         assert(False) #supposed to raise an error
 
-    def parseSuperRegions(self):
-        words = stdin.readline().strip().split(" ")
-        while len(words) != 0:
-            superReg = words[0]
-            reward = words[1]
+    def parseSuperRegions(self, inputStr):
+        words = inputStr
+        for i in range(0, len(words), 2):
+            superReg = int(words[i])
+            reward = int(words[i+1])
             self.bot.addSuperRegion(superReg, reward)
-            words = stdin.readline().strip().split(" ")
 
-    def parseRegions(self):
-        words = stdin.readline().strip().split(" ")
-        while len(words) != 0:
-            reg = words[0]
-            reward = words[1]
+    def parseRegions(self, inputStr):
+        words = inputStr
+        for i in range(0, len(words), 2):
+            reg = int(words[i])
+            reward = int(words[i+1])
             self.bot.addRegion(reg, reward)
-            words = stdin.readline().strip().split(" ")
 
-    def parsePickStartingRegion(self):
-        delay = stdin.readline().strip()
+    def parsePickStartingRegion(self, inputStr):
+        delay = int(inputStr[0])
         self.bot.startDelay(delay)
         self.bot.clearStartingRegions()
-        region = stdin.readline().strip()
-        while(region != ""):
-            self.bot.addStartingRegion(region)
-            region = stdin.readline().strip()
+        regions = inputStr[1:]
+        for region in regions:
+            self.bot.addStartingRegion(int(region))
         self.bot.setPhase(self.bot.PICK_STARTING_REGION)
 
-    def parseOpponentStartingRegions(self):
-        noRegion = stdin.readline().strip()
-        while (noRegion != ""):
-            self.bot.addOpponentStartingRegion(noRegion)
-            noRegion = stdin.readline().strip()
+    def parseOpponentStartingRegions(self, inputStr):
+        noRegions = inputStr
+        for noRegion in noRegions:
+            self.bot.addOpponentStartingRegion(int(noRegion))
 
-    def parseNeighbors(self):
-        words = stdin.readline().strip().split(" ")
-        while(len(words) != 0):
-            region = words[0]
-            neighbors = words[1]
+    def parseNeighbors(self, inputStr):
+        words = inputStr
+        for i in range(0, len(words), 2):
+            region = int(words[i])
+            neighbors = words[i+1]
             neighbors_flds = neighbors.split(",")
             for i in neighbors_flds:
                 self.bot.addNeighbors(region, int(i))
-            words = stdin.readline().strip().split(" ")
 
         #TODO:
         #self.bot.setPhase(self.bot.FIND_BORDERS)
 
-    def parseWastelands(self):
-        region = stdin.readline().strip()
-        while(region != ""):
-            self.bot.addWasteland(region)
-            region = stdin.readline().strip()
+    def parseWastelands(self, inputStr):
+        regions = inputStr
+        for region in regions:
+            self.bot.addWasteland(int(region))
+
+    def parseStartingPickAmount(self, amount):
+        self.bot.startingPickAmount = amount
