@@ -1,11 +1,12 @@
 import random
+import copy
 from sys import stdin, stdout
 from Parser import Parser
 from Region import Region
 from SuperRegion import SuperRegion
 
 
-DEBUG = True
+DEBUG = False
 
 class Bot(object):
     def __init__(self):
@@ -20,6 +21,7 @@ class Bot(object):
         self.phase = None
         self.startingPickAmount = 0
         self.startingRegionsReceived = []
+        self.opponentStartingRegions = []
         self.regions = []
         self.superRegions = []
         self.ownedRegions = []
@@ -29,7 +31,7 @@ class Bot(object):
         self.parser.parseInput()
 
     def pickStartingRegion(self):
-        print "picking starting region"
+        if (DEBUG): print "picking starting region"
         #Start here!
         rand_idx = random.randint(0, len(self.startingRegionsReceived)-1) #top bound inclusive
         stdout.write(str(self.startingRegionsReceived[rand_idx]) + "\n")
@@ -99,8 +101,8 @@ class Bot(object):
             for k in range(region.getNbNeighbors()):
                 target = self.regions[region.getNeighbor(k)]
                 if (target.getOwner() != "Me" and 
-                    region.getArmies() <= target.getArmies()): pass
-                moves.append("%s attack/transfer %d %s %d," 
+                    region.getArmies() <= target.getArmies()): continue
+                moves.append("%s attack/transfer %d %s %d" 
                             % (self.botName, region.id, target.id, region.getArmies() - 1))
                             #for now only attack/transfer with all armies
             moves_per_region.append(moves)
@@ -113,17 +115,21 @@ class Bot(object):
             additional_perms = []
             for move in region_moves:
                 for move_list in perm_moves:
-                    additional_perms.append(move_list.append(move))
+                    cpy = copy.copy(move_list)
+                    cpy.append(move)
+                    additional_perms.append(cpy)
             perm_moves.extend(additional_perms)
 
         return perm_moves
 
     def evalMoveState(self, moveStr):
         val = 0
+        owner = ""
         for move in moveStr:
             #convert from move string to a state to be evaluated
             pieces = move.split(" ")
             bot = pieces[0]
+            owner = bot
             start_idx = int(pieces[2])
             end_idx = int(pieces[3])
             armies = int(pieces[4])
@@ -131,15 +137,17 @@ class Bot(object):
             end = self.regions[end_idx]
             if start.owner == end.owner: return 0 #transfer, no effect?
             #otherwise it's an attack
-            defendersDestroyed = amries * .6 #assuming deterministic
+            defendersDestroyed = armies * .6 #assuming deterministic
             attackersDestroyed = end.armies * .7 #again assuming deterministic
             regionBonus = 10 + 100*self.gotSuperRegion(end, start.owner) if defendersDestroyed >= end.armies else 0 
             val += defendersDestroyed - attackersDestroyed + regionBonus
-        return val if bot == self.botName else -val
+        return val if owner == self.botName else -val
 
     def gotSuperRegion(self, attackedRegion, owner):
-        superRegion = attackedRegion.superRegion
-        for region in superRegion.regions:
+        superRegion_idx = attackedRegion.superRegion
+        superRegion= self.superRegions[superRegion_idx]
+        for region_idx in superRegion.regions:
+            region = self.regions[region_idx]
             if region.owner != owner and attackedRegion != region:
                 return 0 #not taken over
         return superRegion.reward
