@@ -6,7 +6,7 @@ from Region import Region
 from SuperRegion import SuperRegion
 
 
-DEBUG = True
+DEBUG = False
 
 class Bot(object):
     def __init__(self):
