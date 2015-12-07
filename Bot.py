@@ -242,7 +242,7 @@ class Bot(object):
             #attack
             defending_armies = toRegion.getArmies()
             expected_defenders_lost = round(0.6*armies)
-            expected_attackers_lost = round(0.7*armies)
+            expected_attackers_lost = round(0.7*defending_armies)
             if (expected_defenders_lost >= defending_armies):
                 #success
                 toRegion.setOwner("Me")
