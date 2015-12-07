@@ -32,3 +32,6 @@ update_map 2 player1 2 20 player1 2 1 neutral 2 14 neutral 2 8 neutral 2 9 neutr
 
 go place_armies 10000
 
+go attack/transfer 10000
+
+

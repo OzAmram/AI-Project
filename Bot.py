@@ -6,7 +6,7 @@ from Region import Region
 from SuperRegion import SuperRegion
 
 
-DEBUG = False
+DEBUG = True
 
 class Bot(object):
     def __init__(self):
@@ -62,7 +62,6 @@ class Bot(object):
 
 
     def placeArmies(self):
-        #start here!
         boarderRegions = copy.copy(self.boarderRegions)
         possible_placements = self.genArmyPlacements(self.armiesLeft, boarderRegions)
         #use heuristic to pick best placement immediately
@@ -73,14 +72,12 @@ class Bot(object):
             values[val] = values.get(val, set()) | set([i])
         max_val = max(values)
         best_placement = possible_placements[values[max_val].pop()]
-        #values = [self.evalPlacementState(possible_placements[i]) for i in xrange(len(possible_placements))]
-        #max_val = max(values)
-        #best_placement = possible_placements[values.index(max_val)]
+        self.parser.parseOurMoves(best_placement)
         stdout.write(self.formatMove(best_placement) + "\n")
         stdout.flush()
 
     def evalRegionImportance(self, region):
-        #evaluate if it is importance to have armies on this region
+        #evaluate if it is important to have armies on this region
         val = 0
         neutralBonus = 4
         opponentBonus = 2
@@ -123,27 +120,10 @@ class Bot(object):
             moves_per_region.append(moves)
         return moves_per_region
 
-        #generate all the possible permuations of moves
-        #each permuataion can only have 1 move for each region
-        #perm_moves = [[]]
-        #for region_moves in moves_per_region:
-            #additional_perms = []
-            #for move in region_moves:
-             #   for move_list in perm_moves:
-            #        cpy = copy.copy(move_list)
-           #         cpy.append(move)
-          #          additional_perms.append(cpy)
-         #   perm_moves.extend(additional_perms)
-
-        #return perm_moves
-
 
     def evalMoveState(self, moveStr):
         val = 0
         owner = ""
-        #move = moveStr[0]
-        #for move in moveStr:
-            #convert from move string to a state to be evaluated
         pieces = moveStr.split(" ")
         bot = pieces[0]
         owner = bot
@@ -192,14 +172,8 @@ class Bot(object):
             for i in xrange(len(region_moves)):
                 val = self.evalMoveState(region_moves[i])
                 values[val] = values.get(val, set()) | set([i])
-            #values = [self.evalMoveState(region_moves[i]) for i in xrange(len(region_moves))]
             max_val = max(values)
             best_move.append(region_moves[values[max_val].pop()]) #pick a random best move if there are multiple
-            
-            #best_move.append(region_moves[values.index(max_val)])
-        #values = [self.evalMoveState(all_moves[i]) for i in xrange(len(all_moves))]
-        #max_val = max(values)
-        #best_move = all_moves[values.index(max_val)]
         stdout.write(self.formatMove(best_move) + "\n")
         stdout.flush()
 
@@ -250,17 +224,36 @@ class Bot(object):
     def addOpponentStartingRegion(self, noRegion):
         self.opponentStartingRegions.append(noRegion)
 
-    def opponentPlacement(self, noRegion, nbArmies):
-        #TODO: STUB
-        pass
 
-    def opponentMovement(self, noRegion, toRegion, nbArmies):
-        #TODO: STUB
-        pass
+    def makePlacement(self, region_idx, new_armies):
+        region = self.regions[region_idx]
+        if (region.owner != "Me"): return #something went wrong
+        region.setArmies(region.getArmies() + new_armies)
+        if(DEBUG): print region.getArmies()
 
-    def startDelay(self, delay):
-        #TODO: STUB
-        pass
+    def makeAttackTransfer(self, fromRegion_idx, toRegion_idx, armies):
+        fromRegion = self.regions[fromRegion_idx]
+        toRegion = self.regions[toRegion_idx]
+        if(fromRegion.owner == "Me" and toRegion.owner == "Me"):
+            #transfer
+            fromRegion.setArmies(fromRegion.getArmies() - armies)
+            toRegion.setArmies(toRegion.getArmies() + armies)
+        elif(fromRegion.owner == "Me" and toRegion.owner != "Me"):
+            #attack
+            defending_armies = toRegion.getArmies()
+            expected_defenders_lost = round(0.6*armies)
+            expected_attackers_lost = round(0.7*armies)
+            if (expected_defenders_lost >= defending_armies):
+                #success
+                toRegion.setOwner("Me")
+                toRegion.setArmies(armies - expected_attackers_lost)
+                fromRegion.setArmies(fromRegion.getArmies() - armies)
+                self.ownedRegions.append(toRegion_idx)
+            else: #failure
+                toRegion.setArmies(toRegion.getArmies() - expected_defenders_lost)
+                fromRegion.setArmies(fromRegion.getArmies() - expected_attackers_lost)
+
+
 
     def setPhase(self, phase):
         self.phase = phase

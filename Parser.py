@@ -15,8 +15,6 @@ class Parser(object):
                 self.parseSettings(inputType[1:])
             elif inputType[0] == "update_map":
                 self.parseUpdateMap(inputType[1:])
-            elif inputType[0] == "opponent_moves":
-                self.parseOpponentMoves(inputType[1:])
             elif inputType[0] == "pick_starting_region":
                 self.parsePickStartingRegion(inputType[1:])
             elif inputType[0] == "go":
@@ -80,30 +78,25 @@ class Parser(object):
             self.bot.updateRegion(noRegion, playerName, armies)
         self.bot.updateBoarderRegions()
 
-    def parseOpponentMoves(self, inputStr):
-        words = inputStr
-        i = 0
-        while i < len(words):
-            playerName = words[i]
-            action = words[i+1]
-            i += 2
-            if action == "place_armies":
-                noRegion = int(words[i])
-                armies = int(words[i+1])
-                i += 2
-                self.bot.opponentPlacement(noRegion, armies)
-            if action == "attack/transfer":
-                noRegion = int(words[i])
-                toRegion = int(words[i+1])
-                armies = int(words[i+2])
-                i += 3
-                self.bot.opponentMovement(noRegion, toRegion, armies)
+    def parseOurMoves(self, Moves):
+        for move in Moves:
+            pieces = move.split(" ")
+            if (pieces[1] == "place_armies"):
+                if(self.DEBUG): print "parsing our placements"
+                #Place armies move
+                region_idx = int(pieces[2])
+                armies = int(pieces[3])
+                self.bot.makePlacement(region_idx, armies)
+            elif (pieces[1] == "attack/transfer"):
+                    fromRegion_idx = int(pieces[2])
+                    toRegion_idx = int(pieces[3])
+                    armies = int(pieces[4])
+                    self.bot.makeAttackTransfer(fromRegion, toRegion, armies)
 
     def parseGo(self, inputStr):
         words = inputStr
         phase = words[0]
         delay = int(words[1])
-        self.bot.startDelay(delay)
         if phase == "place_armies":
             self.bot.setPhase(self.bot.PLACE_ARMIES)
             return
@@ -128,7 +121,6 @@ class Parser(object):
 
     def parsePickStartingRegion(self, inputStr):
         delay = int(inputStr[0])
-        self.bot.startDelay(delay)
         self.bot.clearStartingRegions()
         regions = inputStr[1:]
         for region in regions:
