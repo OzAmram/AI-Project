@@ -79,23 +79,29 @@ class Bot(object):
         stdout.write(self.formatMove(best_placement) + "\n")
         stdout.flush()
 
+    def evalRegionImportance(self, region):
+        #evaluate if it is importance to have armies on this region
+        val = 0
+        neutralBonus = 4
+        opponentBonus = 2
+        for i in xrange(region.getNbNeighbors()):
+            neighbor_idx = region.getNeighbor(i)
+            neighbor = self.regions[neighbor_idx]
+            if neighbor.owner == "Neutral":
+                val += neutralBonus
+            elif neighbor.owner != region.owner:
+                val += opponentBonus*neighbor.armies
+        return val
+
     def evalPlacementState(self, placements):
         val = 0
-        neutralBonus = 50
-        opponentBonus = 25
         for placement in placements:
             pieces = placement.split(" ")
             bot = pieces[0]
             region_idx = int(pieces[2])
             armies = int(pieces[3])
             region = self.regions[region_idx]
-            for i in xrange(region.getNbNeighbors()):
-                neighbor_idx = region.getNeighbor(i)
-                neighbor = self.regions[neighbor_idx]
-                if neighbor.owner == "Neutral":
-                    val += neutralBonus*armies
-                elif neighbor.owner != region.owner:
-                    val += opponentBonus*armies
+            val += self.evalRegionImportance(region) * armies
         return val
 
     def genMoves(self):
@@ -146,11 +152,13 @@ class Bot(object):
         armies = int(pieces[4])
         start = self.regions[start_idx]
         end = self.regions[end_idx]
-        if start.owner == end.owner: return 0 #transfer, no effect?
+        if start.owner == end.owner: #transfer
+            return self.evalRegionImportance(end) - self.evalRegionImportance(start)
+
         #otherwise it's an attack
         defendersDestroyed = armies * .6 #assuming deterministic
         attackersDestroyed = end.armies * .7 #again assuming deterministic
-        regionBonus = 10 + 100*self.gotSuperRegion(end, start.owner) if defendersDestroyed >= end.armies else 0 
+        regionBonus = 5 + 5*self.gotSuperRegion(end, start.owner) if defendersDestroyed >= end.armies else 0 
         val += defendersDestroyed - attackersDestroyed + regionBonus
         return val if owner == self.botName else -val
 
