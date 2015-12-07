@@ -73,11 +73,12 @@ class Parser(object):
 
     def parseUpdateMap(self, inputStr):
         self.bot.resetRegionsOwned()
-        for i in range(0, len(inputStr), 3):
+        for i in xrange(0, len(inputStr), 3):
             noRegion = int(inputStr[i])
             playerName = inputStr[i+1]
             armies = int(inputStr[i+2])
             self.bot.updateRegion(noRegion, playerName, armies)
+        self.bot.updateBoarderRegions()
 
     def parseOpponentMoves(self, inputStr):
         words = inputStr
