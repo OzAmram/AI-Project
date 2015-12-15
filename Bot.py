@@ -72,9 +72,30 @@ class Bot(object):
             values[val] = values.get(val, set()) | set([i])
         max_val = max(values)
         best_placement = possible_placements[values[max_val].pop()]
-        self.parser.parseOurMoves(best_placement)
+        self.regions = self.parser.parseMoves(self.regions, best_placement)
         stdout.write(self.formatMove(best_placement) + "\n")
         stdout.flush()
+
+
+    def genMoves(self, regions, player):
+        #generate all the possible moves
+        moves_per_region = [] #a list of lists of possible moves each region could make
+        #each region can only make 1 move
+        for region in regions:
+            moves = []
+            if (region.owner != player or region.getArmies() <= 1): #cant do anything with this region
+                continue
+            for k in xrange(region.getNbNeighbors()):
+                target = regions[region.getNeighbor(k)]
+                if (target.getOwner() != player and 
+                    region.getArmies() < target.getArmies()*2): continue
+                moves.append("%s attack/transfer %d %s %d" 
+                            % (self.botName, region.id, target.id, region.getArmies() - 1))
+                            #for now only attack/transfer with all armies
+            moves_per_region.append(moves)
+        return moves_per_region
+
+
 
     def evalRegionImportance(self, region):
         #evaluate if it is important to have armies on this region
@@ -101,66 +122,51 @@ class Bot(object):
             val += self.evalRegionImportance(region) * armies
         return val
 
-    def genMoves(self):
-        #generate all the possible moves
-        moves_per_region = [] #a list of lists of possible moves each region could make
-        #each region can only make 1 move
-        for region_idx in self.boarderRegions:
-            moves = []
-            region = self.regions[region_idx]
-            if region.getArmies() <= 1: #cant do anything with those armies
-                continue
-            for k in xrange(region.getNbNeighbors()):
-                target = self.regions[region.getNeighbor(k)]
-                if (target.getOwner() != "Me" and 
-                    region.getArmies() < target.getArmies()*2): continue
-                moves.append("%s attack/transfer %d %s %d" 
-                            % (self.botName, region.id, target.id, region.getArmies() - 1))
-                            #for now only attack/transfer with all armies
-            moves_per_region.append(moves)
-        return moves_per_region
 
+    def eval_regions(self, regions):
+        est = 0
+        my_regions = 0
+        opp_regions = 0
+        for region in regions:
+            if (region.owner == "Me"):
+                est += self.evalRegionImportance(region) * region.armies
+                my_regions += 1
+            elif(region.owner == "Enemy"):
+                est -= self.evalRegionImportance(region) * region.armies
+                opp_regions += 1 
+    
+    
+        mapControlFactor = 8
+        est += (my_regions - opp_regions) * mapControlFactor
 
-    def evalMoveState(self, moveStr):
-        val = 0
-        owner = ""
-        pieces = moveStr.split(" ")
-        bot = pieces[0]
-        owner = bot
-        start_idx = int(pieces[2])
-        end_idx = int(pieces[3])
-        armies = int(pieces[4])
-        start = self.regions[start_idx]
-        end = self.regions[end_idx]
-        if start.owner == end.owner: #transfer
-            return self.evalRegionImportance(end) - self.evalRegionImportance(start)
+        #super region bonuses
+        superRegionFactor = 15
+        for superRegion in self.superRegions:
+            owner = ""
+            controlled_super = False
+            for region_idx in superRegion.regions:
+                if(owner != "" and regions[region_idx].owner != owner):
+                    controlled_super = False
+                    break
+                owner = regions[region_idx].owner
+                controlled_super = True
+            if(controlled_super and owner == "Me"):
+                est += superRegionFactor * superRegion.reward
+            if(controlled_super and owner == "Enemy"):
+                est -= superRegionFactor * superRegion.reward
 
-        #otherwise it's an attack
-        defendersDestroyed = armies * .6 #assuming deterministic
-        attackersDestroyed = end.armies * .7 #again assuming deterministic
-        regionBonus = 5 + 5*self.gotSuperRegion(end, start.owner) if defendersDestroyed >= end.armies else 0 
-        val += defendersDestroyed - attackersDestroyed + regionBonus
-        return val if owner == self.botName else -val
+        if my_regions == 0:
+            # opp won
+           est = -9999999
+        elif opp_regions == 0:
+            #we won
+           est = 9999999
 
-    def gotSuperRegion(self, attackedRegion, owner):
-        superRegion_idx = attackedRegion.superRegion
-        superRegion= self.superRegions[superRegion_idx]
-        for region_idx in superRegion.regions:
-            region = self.regions[region_idx]
-            if region.owner != owner and attackedRegion != region:
-                return 0 #not taken over
-        return superRegion.reward
+        return est
 
     def makeMoves(self):
-        """
-        // START HERE!
-    /// Output No moves when you have no time left or do not want to commit any moves.
-    // std::cout << "No moves "  << std::endl;
-    /// Anatomy of a single move
-    //  std::cout << botName << " attack/transfer " << from << " " << to << " "<< armiesMoved;
-    /// When outputting multiple moves they must be seperated by a comma
-        """
-        all_moves = self.genMoves()
+    #function that outputs the moves we want to make
+        all_moves = self.genMoves(self.regions, "Me")
         best_move = []
         for region_moves in all_moves:
             if len(region_moves) == 0:
@@ -170,12 +176,39 @@ class Bot(object):
                 continue
             values = dict()
             for i in xrange(len(region_moves)):
-                val = self.evalMoveState(region_moves[i])
+                regions_state = self.parser.parseMoves(self.regions, [region_moves[i]])
+                val = self.minimax(regions_state, 2, "Me")
                 values[val] = values.get(val, set()) | set([i])
             max_val = max(values)
             best_move.append(region_moves[values[max_val].pop()]) #pick a random best move if there are multiple
         stdout.write(self.formatMove(best_move) + "\n")
         stdout.flush()
+
+    def minimax(self, regions, depth, player):
+        #something like a bastardized minimax algorithm or something 
+        if (depth == 0): return self.eval_regions(regions)
+        all_moves = self.genMoves(regions, player)
+        if player == "Me":
+            values = []
+            for region_moves in all_moves:
+                for move in region_moves:
+                    region_state = self.parser.parseMoves(regions, [move])
+                    state_val = self.minimax(region_state, depth-1, "Enemy")
+                    values.append(state_val)
+            if(len(values) == 0): return self.eval_regions(regions)
+            return max(values)
+
+        else:
+            values = []
+            for region_moves in all_moves:
+                for move in region_moves:
+                    region_state = self.parser.parseMoves(regions, [move])
+                    state_val = self.minimax(region_state, depth-1, "Me")
+                    values.append(state_val)
+            if(len(values) == 0): return self.eval_regions(regions)
+            return min(values)
+
+
 
     def addRegion(self, noRegion, noSuperRegion):
         while(len(self.regions) <= noRegion):
@@ -225,30 +258,27 @@ class Bot(object):
         self.opponentStartingRegions.append(noRegion)
 
 
-    def makePlacement(self, region_idx, new_armies):
-        region = self.regions[region_idx]
-        if (region.owner != "Me"): return #something went wrong
+    def makePlacement(self, regions, region_idx, new_armies):
+        region = regions[region_idx]
         region.setArmies(region.getArmies() + new_armies)
-        if(DEBUG): print region.getArmies()
 
-    def makeAttackTransfer(self, fromRegion_idx, toRegion_idx, armies):
-        fromRegion = self.regions[fromRegion_idx]
-        toRegion = self.regions[toRegion_idx]
-        if(fromRegion.owner == "Me" and toRegion.owner == "Me"):
+    def makeAttackTransfer(self, regions, fromRegion_idx, toRegion_idx, armies):
+        fromRegion = regions[fromRegion_idx]
+        toRegion = regions[toRegion_idx]
+        if(fromRegion.owner == toRegion.owner):
             #transfer
             fromRegion.setArmies(fromRegion.getArmies() - armies)
             toRegion.setArmies(toRegion.getArmies() + armies)
-        elif(fromRegion.owner == "Me" and toRegion.owner != "Me"):
+        elif(fromRegion.owner != toRegion.owner != "Me"):
             #attack
             defending_armies = toRegion.getArmies()
             expected_defenders_lost = round(0.6*armies)
             expected_attackers_lost = round(0.7*defending_armies)
             if (expected_defenders_lost >= defending_armies):
                 #success
-                toRegion.setOwner("Me")
+                toRegion.setOwner(fromRegion.owner)
                 toRegion.setArmies(armies - expected_attackers_lost)
                 fromRegion.setArmies(fromRegion.getArmies() - armies)
-                self.ownedRegions.append(toRegion_idx)
             else: #failure
                 toRegion.setArmies(toRegion.getArmies() - expected_defenders_lost)
                 fromRegion.setArmies(fromRegion.getArmies() - expected_attackers_lost)

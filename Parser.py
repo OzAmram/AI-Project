@@ -1,4 +1,5 @@
 from sys import stdin, stdout
+import copy
 
 class Parser(object):
     def __init__(self, bot, DEBUG=False):
@@ -78,20 +79,23 @@ class Parser(object):
             self.bot.updateRegion(noRegion, playerName, armies)
         self.bot.updateBoarderRegions()
 
-    def parseOurMoves(self, Moves):
+    def parseMoves(self, Regions, Moves):
+        regions = copy.deepcopy(Regions)
         for move in Moves:
+            if (move == "No moves"): continue
             pieces = move.split(" ")
             if (pieces[1] == "place_armies"):
                 if(self.DEBUG): print "parsing our placements"
                 #Place armies move
                 region_idx = int(pieces[2])
                 armies = int(pieces[3])
-                self.bot.makePlacement(region_idx, armies)
+                self.bot.makePlacement(regions, region_idx, armies)
             elif (pieces[1] == "attack/transfer"):
                     fromRegion_idx = int(pieces[2])
                     toRegion_idx = int(pieces[3])
                     armies = int(pieces[4])
-                    self.bot.makeAttackTransfer(fromRegion, toRegion, armies)
+                    self.bot.makeAttackTransfer(regions, fromRegion_idx, toRegion_idx, armies)
+        return regions
 
     def parseGo(self, inputStr):
         words = inputStr
