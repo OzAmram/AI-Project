@@ -7,6 +7,7 @@ from SuperRegion import SuperRegion
 
 
 DEBUG = False
+inf = 9999999
 
 class Bot(object):
     def __init__(self):
@@ -88,10 +89,10 @@ class Bot(object):
             for k in xrange(region.getNbNeighbors()):
                 target = regions[region.getNeighbor(k)]
                 if (target.getOwner() != player and 
-                    region.getArmies() < target.getArmies()*2): continue
-                moves.append("%s attack/transfer %d %s %d" 
-                            % (self.botName, region.id, target.id, region.getArmies() - 1))
-                            #for now only attack/transfer with all armies
+                6*(region.getArmies() -1) > 7* target.getArmies()):
+                    moves.append("%s attack/transfer %d %s %d" 
+                                % (self.botName, region.id, target.id, region.getArmies() - 1))
+                                #for now only attack/transfer with all armies
             moves_per_region.append(moves)
         return moves_per_region
 
@@ -100,8 +101,8 @@ class Bot(object):
     def evalRegionImportance(self, region):
         #evaluate if it is important to have armies on this region
         val = 0
-        neutralBonus = 4
-        opponentBonus = 2
+        neutralBonus = 2
+        opponentBonus = 1
         for i in xrange(region.getNbNeighbors()):
             neighbor_idx = region.getNeighbor(i)
             neighbor = self.regions[neighbor_idx]
@@ -136,11 +137,11 @@ class Bot(object):
                 opp_regions += 1 
     
     
-        mapControlFactor = 8
+        mapControlFactor = 20
         est += (my_regions - opp_regions) * mapControlFactor
 
         #super region bonuses
-        superRegionFactor = 15
+        superRegionFactor = 35
         for superRegion in self.superRegions:
             owner = ""
             controlled_super = False
@@ -159,8 +160,8 @@ class Bot(object):
             # opp won
            est = -9999999
         elif opp_regions == 0:
-            #we won
-           est = 9999999
+            #we probably won, but maybe we cant see opps regions
+           est += 3000
 
         return est
 
@@ -168,6 +169,7 @@ class Bot(object):
     #function that outputs the moves we want to make
         all_moves = self.genMoves(self.regions, "Me")
         best_move = []
+        base_val = self.alphabeta(copy.deepcopy(self.regions), -inf, inf, 2, "Enemy") # value of making no moves
         for region_moves in all_moves:
             if len(region_moves) == 0:
                 continue
@@ -177,36 +179,42 @@ class Bot(object):
             values = dict()
             for i in xrange(len(region_moves)):
                 regions_state = self.parser.parseMoves(self.regions, [region_moves[i]])
-                val = self.minimax(regions_state, 2, "Me")
+                val = self.alphabeta(regions_state, -inf, inf, 3, "Enemy")
                 values[val] = values.get(val, set()) | set([i])
             max_val = max(values)
-            best_move.append(region_moves[values[max_val].pop()]) #pick a random best move if there are multiple
+            if (max_val > base_val): best_move.append(region_moves[values[max_val].pop()]) #pick a random best move if there are multiple
         stdout.write(self.formatMove(best_move) + "\n")
         stdout.flush()
 
-    def minimax(self, regions, depth, player):
-        #something like a bastardized minimax algorithm or something 
+    def alphabeta(self, regions, alpha, beta, depth, player):
+        #something like a bastardized alphabeta
         if (depth == 0): return self.eval_regions(regions)
         all_moves = self.genMoves(regions, player)
         if player == "Me":
+            val = -inf
             values = []
             for region_moves in all_moves:
                 for move in region_moves:
                     region_state = self.parser.parseMoves(regions, [move])
-                    state_val = self.minimax(region_state, depth-1, "Enemy")
-                    values.append(state_val)
-            if(len(values) == 0): return self.eval_regions(regions)
-            return max(values)
+                    state_val = self.alphabeta(region_state, alpha, beta, depth-1, "Enemy")
+                    val = max(val, state_val)
+                    alpha = max(alpha, val)
+                    if (beta <= alpha): break
+            if(val == -inf): return self.eval_regions(regions)
+            return val
 
         else:
             values = []
+            val = inf
             for region_moves in all_moves:
                 for move in region_moves:
                     region_state = self.parser.parseMoves(regions, [move])
-                    state_val = self.minimax(region_state, depth-1, "Me")
-                    values.append(state_val)
-            if(len(values) == 0): return self.eval_regions(regions)
-            return min(values)
+                    state_val = self.alphabeta(region_state, alpha, beta, depth-1, "Me")
+                    val = min(val, state_val)
+                    beta = min(beta,val)
+                    if beta <= alpha: break
+            if(val == inf): return self.eval_regions(regions)
+            return val
 
 
 
@@ -289,8 +297,6 @@ class Bot(object):
         self.phase = phase
 
     def executeAction(self):
-        #print self.ownedRegions
-        #print self.boarderRegions
         if self.phase == None:
             return
         if self.phase == self.PICK_STARTING_REGION:
@@ -314,16 +320,13 @@ class Bot(object):
             self.ownedRegions.append(noRegion)
 
     def updateBoarderRegions(self):
-        #print "updating boarders"
         for region_idx in self.ownedRegions:
-         #   print "checking" + str(region_idx)
             region = self.regions[region_idx]
             for i in xrange(region.getNbNeighbors()):
                 neighbor = self.regions[region.getNeighbor(i)]
                 if neighbor.owner != "Me":
                     self.boarderRegions.add(region_idx)
                     break
-        #print "final boarders" + str(self.boarderRegions)
 
     def addArmies(self, noRegion, nbArmies):
         self.regions[noRegion].setArmies(self.regions[noRegion].getArmies() + nbArmies)
